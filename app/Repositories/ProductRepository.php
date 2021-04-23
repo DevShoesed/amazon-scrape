@@ -47,7 +47,9 @@ class ProductRepository implements ProductRepositoryInterface
                 'product_asin' => $product->asin,
                 'price' => $productPrice
             ])
-            : $product->last_price;
+            : Price::where('product_asin', $product->asin)
+            ->orderBy('created_at', 'desc')
+            ->first();
     }
 
     /**

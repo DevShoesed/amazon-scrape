@@ -3,10 +3,14 @@
 namespace App\Services;
 
 use App\Http\Resources\CategoryResource;
+use App\Http\Resources\ProductNotFoundResource;
+use App\Http\Resources\ProductResource;
+use App\Models\Product;
 use App\Repositories\CategoryRepositoryInterface;
 use App\Repositories\ProductRepositoryInterface;
 use Goutte\Client;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\JsonResource;
 use NumberFormatter;
 
 class ProductService
@@ -89,28 +93,25 @@ class ProductService
      * 
      * @param String $asin
      * 
-     * @return JsonResponse
+     * @return JsonResource
      */
-    public function getProduct(string $asin): JsonResponse
+    public function getProduct(string $asin): JsonResource
     {
         try {
             $product = $this->productRepository->getProduct($asin);
 
             $categories = $this->categoryRepository->getAllParent($product->category);
 
-            return response()->json([
-                'asin' => $product->asin,
-                'name' => $product->name,
-                'price' => $product->last_price,
-                'category' => new CategoryResource($product->category),
-                'categories' => $categories
-            ], 200);
+            return new ProductResource([
+                'product' => $product,
+                'categories' => array_reverse($categories)
+            ]);
         } catch (\Exception $e) {
             logger($e->getMessage());
 
-            return response()->json([
-                'message' => 'Product not found'
-            ], 404);
+            return new ProductNotFoundResource([
+                'asin' => $asin
+            ]);
         }
     }
 }
