@@ -8,4 +8,16 @@ use Illuminate\Database\Eloquent\Model;
 class Price extends Model
 {
     use HasFactory;
+
+    protected $fillable = [
+        'product_asin',
+        'price'
+    ];
+
+    protected $casts = ['product_asin' => 'string'];
+
+    public function article()
+    {
+        $this->belongsTo(Article::class);
+    }
 }

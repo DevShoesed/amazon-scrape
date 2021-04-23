@@ -16,8 +16,13 @@ class CreatePricesTable extends Migration
         Schema::create('prices', function (Blueprint $table) {
             $table->id();
             $table->float('price');
-            $table->string('asin', 10);
-            $table->foreign('asin')->references('asin')->on('products')->onDelete('cascade');
+            $table->string('product_asin', 10);
+
+            $table->foreign('product_asin')
+                ->references('asin')
+                ->on('products')
+                ->onDelete('cascade');
+
             $table->timestamps();
         });
     }
