@@ -42,28 +42,39 @@ class ProductService
 
         $nameContainer = $crawler->filter('#productTitle');
         if ($nameContainer->count() == 0) {
-            logger("SCRAPE - Impossible scrape Product " . $asin);
+            logger("SCRAPE $asin - Impossible scrape Product, name not found");
             return false;
         }
-
-        $offer_price = $crawler->filter('#priceblock_ourprice');
-        $sale_price = $crawler->filter('#priceblock_saleprice');
-        $categoriesContainer = $crawler->filter('#wayfinding-breadcrumbs_feature_div > ul > li:not([class]) ');
-        $imagesContainer = $crawler->filter("#altImages > ul > li");
-
         $name = $nameContainer->text();
-        $price = $offer_price->count() > 0 ? $offer_price->text() :  $sale_price->text();
-
-        $formatter = new NumberFormatter('it_IT', NumberFormatter::CURRENCY);
-        $price = $formatter->parseCurrency($price, $curr);
 
         $categories = [];
-        $images = [];
+        $categoriesContainer = $crawler->filter('#wayfinding-breadcrumbs_feature_div > ul > li:not([class]) ');
+
+        if ($categoriesContainer->count() == 0) {
+            logger("SCRAPE $asin - Impossible scrape Product, categories not found");
+            return false;
+        }
 
         $categoriesContainer->each(function ($cat) use (&$categories) {
             array_push($categories, $cat->text());
         });
 
+
+        $multi_price = $crawler->filter('span[data-action=show-all-offers-display]');
+        $offer_price = $crawler->filter('#priceblock_ourprice');
+        $sale_price = $crawler->filter('#priceblock_saleprice');
+
+        if ($multi_price->count() > 0) {
+            $price = $multi_price->filter(".a-color-price")->text();
+        } else {
+            $price = $offer_price->count() > 0 ? $offer_price->text() :  $sale_price->text();
+        }
+
+        $formatter = new NumberFormatter('it_IT', NumberFormatter::CURRENCY);
+        $price = $formatter->parseCurrency($price, $curr);
+
+        $images = [];
+        $imagesContainer = $crawler->filter("#altImages > ul > li");
         $imagesContainer->each(function ($imgSpan) use (&$images) {
             $img = $imgSpan->filter(" span > img ");
             if ($img->count() > 0) {
@@ -83,7 +94,7 @@ class ProductService
             return false;
         }
 
-        $this->productRepository->updatePrice($product, $price);
+        $this->productRepository->updatePrice($product->fresh(), $price);
 
         return true;
     }
