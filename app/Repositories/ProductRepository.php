@@ -48,23 +48,23 @@ class ProductRepository implements ProductRepositoryInterface
             'category_id' => 'required|numeric'
         ]);
 
-        $product = null;
         if ($validator->fails()) {
             logger($validator->getMessageBag()->first());
             return null;
         }
-        $product = Product::updateOrCreate($data);
 
-        return $product;
+        $product = Product::find($data['asin']);
+
+        return $product ?? Product::create($data);
     }
 
     /**
      * @inheritdoc
      */
-    public function updatePrice(Product $product, float $productPrice): ?Price
+    public function updatePrice(String $asin, float $productPrice): ?Price
     {
         return Price::create([
-            'product_asin' => $product->asin,
+            'product_asin' => $asin,
             'price' => $productPrice
         ]);
     }

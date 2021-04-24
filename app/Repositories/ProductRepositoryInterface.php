@@ -25,12 +25,12 @@ interface ProductRepositoryInterface
     /**
      * Update Product price if not equal to last price
      * 
-     * @param Product $product
+     * @param String $asin
      * @param float $price
      * 
      * @return Price $productPrice
      */
-    public function updatePrice(Product $product, float $productPrice): ?Price;
+    public function updatePrice(String $asin, float $productPrice): ?Price;
 
 
     /**
