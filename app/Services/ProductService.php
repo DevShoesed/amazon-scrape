@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Http\Resources\CategoryResource;
+use App\Http\Resources\ProductCollection;
 use App\Http\Resources\ProductNotFoundResource;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
@@ -113,5 +114,21 @@ class ProductService
                 'asin' => $asin
             ]);
         }
+    }
+
+    /**
+     * Fetch All Products
+     */
+    public function getAllProducts(int $categoryId = null, string $name = null): JsonResource
+    {
+        $products = $this->productRepository->getAllProducts($categoryId, $name);
+        $collection = $products->map(function ($product) {
+            return [
+                'product' => $product,
+                'categories' => array_reverse($this->categoryRepository->getAllParent($product->category))
+            ];
+        });
+
+        return new ProductCollection($collection);
     }
 }

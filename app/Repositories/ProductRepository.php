@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\Price;
 use App\Models\Product;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class ProductRepository implements ProductRepositoryInterface
@@ -11,9 +12,29 @@ class ProductRepository implements ProductRepositoryInterface
     /**
      * @inheritdoc
      */
-    public function getAllProducts()
+    public function getAllProducts(int $categoryId = null, string $name = null)
     {
-        return Product::all();
+        //return Product::with('latestPrice')->orderBy('price')->get();
+        $latestPrice = DB::table('prices')
+            ->select('product_asin', DB::raw('MAX(updated_at) as last_price_updated_at'))
+            ->groupBy('product_asin');
+
+        $queryProducts = Product::joinSub($latestPrice, 'latest_price', function ($join) {
+            $join->on('products.asin', '=', 'latest_price.product_asin');
+        })->join('prices', function ($join) {
+            $join->on('latest_price.product_asin', '=', 'prices.product_asin');
+            $join->on('latest_price.last_price_updated_at', '=', 'prices.updated_at');
+        });
+
+        if ($categoryId) {
+            $queryProducts = $queryProducts->where('category_id', $categoryId);
+        }
+
+        if ($name) {
+            $queryProducts = $queryProducts->where('products.name', 'LIKE', '%' . $name . '%');
+        }
+        logger($queryProducts->toSql());
+        return $queryProducts->orderBy('prices.price')->get();
     }
 
     /**

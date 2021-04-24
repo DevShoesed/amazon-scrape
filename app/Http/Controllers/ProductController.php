@@ -7,6 +7,7 @@ use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
@@ -50,9 +51,12 @@ class ProductController extends Controller
      * 
      * @return JsonResponse
      */
-    public function index()
+    public function index(Request $request)
     {
-        return new ProductCollection(Product::all());
+        return response()->json(
+            $this->productService->getAllProducts($request->categoryId, $request->name),
+            200
+        );
     }
 
     /**
