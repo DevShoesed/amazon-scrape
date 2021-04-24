@@ -2,15 +2,12 @@
 
 namespace App\Services;
 
-use App\Http\Resources\CategoryResource;
 use App\Http\Resources\ProductCollection;
 use App\Http\Resources\ProductNotFoundResource;
 use App\Http\Resources\ProductResource;
-use App\Models\Product;
 use App\Repositories\CategoryRepositoryInterface;
 use App\Repositories\ProductRepositoryInterface;
 use Goutte\Client;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\JsonResource;
 use NumberFormatter;
 
@@ -37,12 +34,20 @@ class ProductService
      */
     public function handleScrapeProduct(string $asin): bool
     {
-        $client = new Client();
-        $crawler = $client->request('GET', 'http://webcache.googleusercontent.com/search?q=cache:www.amazon.it/dp/' . $asin);
+        $httpClient = \Symfony\Component\HttpClient\HttpClient::create([
+            //'proxy' => '',
+        ]);
+        $client = new Client($httpClient);
+        $crawler = $client->request('GET', 'http://webcache.googleusercontent.com/search?q=cache:www.amazon.it/dp/' . $asin, [
+            'headers' => [
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.72 Safari/537.36'
+            ]
+        ]);
 
         $nameContainer = $crawler->filter('#productTitle');
         if ($nameContainer->count() == 0) {
             logger("SCRAPE $asin - Impossible scrape Product, name not found");
+            logger($crawler->html());
             return false;
         }
         $name = $nameContainer->text();
@@ -60,18 +65,44 @@ class ProductService
         });
 
 
-        $multi_price = $crawler->filter('span[data-action=show-all-offers-display]');
+
+        $single_price = $crawler->filter('#price');
+        $price_buy_boc = $crawler->filter('#price_inside_buybox');
         $offer_price = $crawler->filter('#priceblock_ourprice');
         $sale_price = $crawler->filter('#priceblock_saleprice');
+        $multi_price = $crawler->filter('span[data-action=show-all-offers-display]');
 
-        if ($multi_price->count() > 0) {
-            $price = $multi_price->filter(".a-color-price")->text();
+        if (
+            $single_price->count() > 0
+            and !str_contains($single_price->text(), "opzioni di acquisto")
+        ) {
+            $price_text = $single_price->text();
+        } elseif (
+            $price_buy_boc->count() > 0
+            and !str_contains($price_buy_boc->text(), "opzioni di acquisto")
+        ) {
+            $price_text = $price_buy_boc->text();
+        } elseif ($offer_price->count() > 0) {
+            $price_text = $offer_price->text();
+        } elseif ($sale_price->count() > 0) {
+            $price_text = $sale_price->text();
+        } elseif ($multi_price->count() > 0) {
+            $price_text = $multi_price->text();
         } else {
-            $price = $offer_price->count() > 0 ? $offer_price->text() :  $sale_price->text();
+            $price_text = "0";
         }
+
+        $price_text = str_replace("Tutti i prezzi includono l'IVA.", "", $price_text);
+        $price_text = str_replace("Prezzo: ", "", $price_text);
+        $price = $price_text;
 
         $formatter = new NumberFormatter('it_IT', NumberFormatter::CURRENCY);
         $price = $formatter->parseCurrency($price, $curr);
+
+        if ($price == 0) {
+            logger("SCRAPE $asin - Impossible scrape Product, price not found");
+            return false;
+        }
 
         $images = [];
         $imagesContainer = $crawler->filter("#altImages > ul > li");
@@ -94,7 +125,7 @@ class ProductService
             return false;
         }
 
-        $this->productRepository->updatePrice($product->fresh(), $price);
+        $this->productRepository->updatePrice($asin, $price);
 
         return true;
     }
