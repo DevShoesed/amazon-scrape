@@ -33,7 +33,7 @@ class ProductRepository implements ProductRepositoryInterface
         if ($name) {
             $queryProducts = $queryProducts->where('products.name', 'LIKE', '%' . $name . '%');
         }
-        logger($queryProducts->toSql());
+
         return $queryProducts->orderBy('prices.price')->get();
     }
 
