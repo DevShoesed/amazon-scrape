@@ -63,14 +63,10 @@ class ProductRepository implements ProductRepositoryInterface
      */
     public function updatePrice(Product $product, float $productPrice): ?Price
     {
-        return $productPrice !== $product->last_price
-            ? Price::create([
-                'product_asin' => $product->asin,
-                'price' => $productPrice
-            ])
-            : Price::where('product_asin', $product->asin)
-            ->orderBy('created_at', 'desc')
-            ->first();
+        return Price::create([
+            'product_asin' => $product->asin,
+            'price' => $productPrice
+        ]);
     }
 
     /**
