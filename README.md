@@ -20,10 +20,11 @@ This Amazon Scraper is made with Laravel and developed with Sail.
 
 ## Testing API
 
-    The avaible endpoints:
-    - `YOUR_HOST/api/scape/{asin}`: Search product page on Amazon and Update or Create if exist in DB.
-    - `YOUR_HOST/api/products/`: Fetch all products order by price.
-    - `YOUR_HOST/api/product/{asin}`: Fetch a single product.
+The avaible endpoints:
+
+-   `YOUR_HOST/api/scape/{asin}`: Search product page on Amazon and Update or Create if exist in DB.
+-   `YOUR_HOST/api/products/`: Fetch all products order by price.
+-   `YOUR_HOST/api/product/{asin}`: Fetch a single product.
 
 ## Contact
 
