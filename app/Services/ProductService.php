@@ -16,11 +16,13 @@ class ProductService
 
     protected CategoryRepositoryInterface $categoryRepository;
     protected ProductRepositoryInterface $productRepository;
+    protected Client $client;
 
-    public function __construct(CategoryRepositoryInterface $categoryRepository, ProductRepositoryInterface $productRepository)
+    public function __construct(CategoryRepositoryInterface $categoryRepository, ProductRepositoryInterface $productRepository, Client $client)
     {
         $this->categoryRepository = $categoryRepository;
         $this->productRepository = $productRepository;
+        $this->client = $client;
     }
 
 
@@ -34,11 +36,7 @@ class ProductService
      */
     public function handleScrapeProduct(string $asin): bool
     {
-        $httpClient = \Symfony\Component\HttpClient\HttpClient::create([
-            //'proxy' => '',
-        ]);
-        $client = new Client($httpClient);
-        $crawler = $client->request('GET', 'http://webcache.googleusercontent.com/search?q=cache:www.amazon.it/dp/' . $asin, [
+        $crawler = $this->client->request('GET', 'http://webcache.googleusercontent.com/search?q=cache:www.amazon.it/dp/' . $asin, [
             'headers' => [
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.72 Safari/537.36'
             ]
