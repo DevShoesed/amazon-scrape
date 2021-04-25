@@ -9,6 +9,7 @@ use App\Repositories\CategoryRepositoryInterface;
 use App\Repositories\ProductRepositoryInterface;
 use Goutte\Client;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Log;
 use NumberFormatter;
 
 class ProductService
@@ -44,8 +45,7 @@ class ProductService
 
         $nameContainer = $crawler->filter('#productTitle');
         if ($nameContainer->count() == 0) {
-            logger("SCRAPE $asin - Impossible scrape Product, name not found");
-            logger($crawler->html());
+            Log::error("SCRAPE $asin - Impossible scrape Product, name not found");
             return false;
         }
         $name = $nameContainer->text();
@@ -54,7 +54,7 @@ class ProductService
         $categoriesContainer = $crawler->filter('#wayfinding-breadcrumbs_feature_div > ul > li:not([class]) ');
 
         if ($categoriesContainer->count() == 0) {
-            logger("SCRAPE $asin - Impossible scrape Product, categories not found");
+            Log::error("SCRAPE $asin - Impossible scrape Product, categories not found");
             return false;
         }
 
@@ -85,7 +85,7 @@ class ProductService
         } elseif ($sale_price->count() > 0) {
             $price_text = $sale_price->text();
         } elseif ($multi_price->count() > 0) {
-            $price_text = $multi_price->text();
+            $price_text = $multi_price->filter("a > span.a-color-price")->text();
         } else {
             $price_text = "0";
         }
@@ -98,7 +98,7 @@ class ProductService
         $price = $formatter->parseCurrency($price, $curr);
 
         if ($price == 0) {
-            logger("SCRAPE $asin - Impossible scrape Product, price not found");
+            Log::error("SCRAPE $asin - Impossible scrape Product, price not found <$price>");
             return false;
         }
 
