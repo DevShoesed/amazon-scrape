@@ -9,8 +9,15 @@ class Product extends Model
 {
     use HasFactory;
 
+    public $incrementing = false;
+
     protected $primaryKey = 'asin';
-    protected $casts = ['asin' => 'string'];
+    protected $keyType = 'string';
+
+    protected $casts = [
+        'asin' => 'string',
+        'prices.product_asin' => 'string'
+    ];
 
     protected $appends = ['last_price'];
 
@@ -22,7 +29,9 @@ class Product extends Model
 
     public function prices()
     {
-        return $this->hasMany(Price::class);
+        return $this
+            ->hasMany(Price::class, 'product_asin', 'asin')
+            ->orderByDesc('updated_at');
     }
 
     public function category()
@@ -33,7 +42,6 @@ class Product extends Model
     public function getLastPriceAttribute()
     {
         return $this->prices()
-            ->orderBy('created_at', 'desc')
             ->first()
             ->price ?? 0;
     }
