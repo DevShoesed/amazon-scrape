@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Http\Resources\ProductCollection;
 use App\Http\Resources\ProductNotFoundResource;
 use App\Http\Resources\ProductResource;
+use App\Models\Product;
 use App\Repositories\CategoryRepositoryInterface;
 use App\Repositories\ProductRepositoryInterface;
 use Exception;
@@ -230,5 +231,23 @@ class ProductService
         });
 
         return $images;
+    }
+
+
+    /**
+     * Delete aProduct
+     *
+     * @param  string $asin
+     * @return bool
+     */
+    public function deleteProduct(string $asin): bool
+    {
+        try {
+            return Product::find($asin)->delete();
+        } catch (Exception $e) {
+            Log::error('Delete product Error: ' . $e->getMessage());
+        }
+
+        return false;
     }
 }

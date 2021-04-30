@@ -8,6 +8,8 @@ use App\Models\Product;
 use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
 {
@@ -68,5 +70,19 @@ class ProductController extends Controller
     public function show(string $asin)
     {
         return $this->productService->getProduct($asin);
+    }
+
+
+    /**
+     * Delete product
+     *
+     * @param  Product $product
+     * @return JsonResource
+     */
+    public function destroy(Product $product)
+    {
+        $this->productService->deleteProduct($product->asin);
+
+        return response()->noContent();
     }
 }

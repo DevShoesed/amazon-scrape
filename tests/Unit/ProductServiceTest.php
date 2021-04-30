@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use App\Models\Category;
+use App\Models\Price;
 use App\Models\Product;
 use App\Repositories\CategoryRepository;
 use App\Repositories\ProductRepository;
@@ -9,9 +11,9 @@ use App\Services\ProductService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Mockery;
-//use PHPUnit\Framework\TestCase;
 use Tests\TestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Faker\Generator as Faker;
 
 class ProductServiceTest extends TestCase
 {
@@ -146,6 +148,35 @@ class ProductServiceTest extends TestCase
         );
     }
 
+
+    /**
+     * Test delete existing product
+     *
+     * @return void
+     */
+    public function test_delete_existing_product(): void
+    {
+        $faker = new Faker();
+
+        $asin = 'BX26AU';
+        $category = Category::create(['name' => 'Category Test']);
+        $product = Product::create([
+            'asin' => $asin,
+            'name' => 'Product Test',
+            'category_id' => $category->id
+        ]);
+
+        $product->prices()->create([
+            'price' => rand(10, 80)
+        ]);
+
+        $result = $this->service->deleteProduct($asin);
+
+        $this->assertTrue($result);
+
+        $this->assertEmpty(Price::where(['product_asin' => $asin])->get());
+        $this->assertNull(Product::find($asin));
+    }
 
     protected function setUp(): void
     {
