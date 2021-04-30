@@ -4,7 +4,9 @@ namespace App\Repositories;
 
 use App\Models\Price;
 use App\Models\Product;
+use Exception;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class ProductRepository implements ProductRepositoryInterface
@@ -14,7 +16,6 @@ class ProductRepository implements ProductRepositoryInterface
      */
     public function getAllProducts(int $categoryId = null, string $name = null)
     {
-        //return Product::with('latestPrice')->orderBy('price')->get();
         $latestPrice = DB::table('prices')
             ->select('product_asin', DB::raw('MAX(updated_at) as last_price_updated_at'))
             ->groupBy('product_asin');
@@ -40,7 +41,7 @@ class ProductRepository implements ProductRepositoryInterface
     /**
      * @inheritdoc
      */
-    public function storeProduct(array $data)
+    public function storeProduct(array $data): ?Product
     {
         $validator = Validator::make($data, [
             'asin' => 'required|string',
@@ -50,21 +51,24 @@ class ProductRepository implements ProductRepositoryInterface
 
         if ($validator->fails()) {
             logger($validator->getMessageBag()->first());
-            return null;
+            new Exception("Impossible Store Product: " . $validator->getMessageBag()->first());
         }
 
-        $product = Product::find($data['asin']);
+        $product = Product::updateOrCreate(
+            ['asin' => $data['asin']],
+            $data
+        );
 
-        return $product ?? Product::create($data);
+        return $product;
     }
 
     /**
      * @inheritdoc
      */
-    public function updatePrice(String $asin, float $productPrice): ?Price
+    public function updatePrice(Product $product, float $productPrice): ?Price
     {
-        return Price::create([
-            'product_asin' => $asin,
+
+        return $product->prices()->create([
             'price' => $productPrice
         ]);
     }

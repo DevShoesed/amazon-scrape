@@ -16,27 +16,29 @@ interface ProductRepositoryInterface
     public function getAllProducts();
 
     /**
-     * Create new Product or Update if exist
+     * Update or Create Product
      * 
      * @param array $data
+     * 
+     * @return Product|null
      */
-    public function storeProduct(array $data);
+    public function storeProduct(array $data): ?Product;
+
 
     /**
-     * Update Product price if not equal to last price
+     * Add a new Price on Product
      * 
-     * @param String $asin
-     * @param float $price
+     * @param Product $product
+     * @param float $productPrice
      * 
-     * @return Price $productPrice
+     * @return Price|null
      */
-    public function updatePrice(String $asin, float $productPrice): ?Price;
-
+    public function updatePrice(Product $product, float $productPrice): ?Price;
 
     /**
      * Fetch a single Product
      * 
-     * @param String $asin
+     * @param string $asin
      * 
      * @return Product
      */

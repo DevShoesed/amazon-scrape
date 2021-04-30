@@ -7,6 +7,7 @@ use App\Http\Resources\ProductNotFoundResource;
 use App\Http\Resources\ProductResource;
 use App\Repositories\CategoryRepositoryInterface;
 use App\Repositories\ProductRepositoryInterface;
+use Exception;
 use Goutte\Client;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Log;
@@ -27,59 +28,55 @@ class ProductService
         $this->client = $client;
     }
 
-
     /**
      * Scrape Amazon Product Page and store info
      * 
-     * @param String $asin
+     * @param string $asin
      * 
-     * @return Boolean $result
-     * 
+     * @return bool
      */
     public function handleScrapeProduct(string $asin): bool
     {
+
         $html = $this->client->request('GET', 'http://webcache.googleusercontent.com/search?q=cache:www.amazon.it/dp/' . $asin, [
             'headers' => [
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.72 Safari/537.36'
             ]
         ]);
 
-        $name = $this->findNameProduct($html);
-        if (!$name) {
-            Log::error("SCRAPE $asin - Impossible scrape Product, name not found");
+        try {
+            $name = $this->findNameProduct($html);
+            if (!$name) {
+                new Exception("Name Product Not Found");
+            }
+
+            $categories = $this->findCategories($html);
+            if (count($categories) == 0) {
+                new Exception("Product Categories Not Found");
+            }
+
+            $price = $this->findPrice($html);
+            if (!$price) {
+                new Exception("Product Price Not Found");
+            }
+
+            // TODO: Add store images
+            $images = $this->findImages($html);
+
+            $category_id = $this->categoryRepository->generateCategories($categories);
+
+            $product = $this->productRepository->storeProduct([
+                'asin' => $asin,
+                'name' => $name,
+                'category_id' => $category_id
+            ]);
+
+            $this->productRepository->updatePrice($product, $price);
+        } catch (Exception $e) {
+            Log::error("SCRAPE $asin - Impossible scrape Product: " . $e->getMessage());
+
             return false;
         }
-
-
-        $categories = $this->findCategories($html);
-        if (count($categories) == 0) {
-            Log::error("SCRAPE $asin - Impossible scrape Product, categories not found");
-            return false;
-        }
-
-
-        $price = $this->findPrice($html);
-        if (!$price) {
-            Log::error("SCRAPE $asin - Impossible scrape Product, price not found <$price>");
-            return false;
-        }
-
-        $images = $this->findImages($html);
-
-
-        $category_id = $this->categoryRepository->generateCategories($categories);
-
-        $product = $this->productRepository->storeProduct([
-            'asin' => $asin,
-            'name' => $name,
-            'category_id' => $category_id
-        ]);
-
-        if (!$product) {
-            return false;
-        }
-
-        $this->productRepository->updatePrice($asin, $price);
 
         return true;
     }
@@ -129,28 +126,30 @@ class ProductService
     }
 
 
+
     /**
      * Search the Product Name in the DOM
      * 
      * @param Crawler $html
      * 
-     * @return string|null $name
+     * @return string|null
      */
-    public function findNameProduct(Crawler $html)
+    public function findNameProduct(Crawler $html): ?string
     {
         $nameContainer = $html->filter('#productTitle');
 
         return $nameContainer->count() > 0 ? $nameContainer->text() : null;
     }
 
+
     /**
      * Search all Categories of Product in the DOM
      * 
      * @param Crawler $html
      * 
-     * @return array $categories
+     * @return array
      */
-    public function findCategories(Crawler $html)
+    public function findCategories(Crawler $html): array
     {
         $categories = [];
 
@@ -165,7 +164,6 @@ class ProductService
         return $categories;
     }
 
-
     /**
      * Search Product Price in the DOM
      * 
@@ -173,7 +171,7 @@ class ProductService
      * 
      * @return float|null
      */
-    public function findPrice(Crawler $html)
+    public function findPrice(Crawler $html): ?float
     {
         $price = null;
         $price_text = null;
@@ -185,15 +183,15 @@ class ProductService
         $multi_price = $html->filter('span[data-action=show-all-offers-display]');
 
         if (
-            $single_price->count() > 0
-            and !str_contains($single_price->text(), "opzioni di acquisto")
-        ) {
-            $price_text = $single_price->text();
-        } elseif (
             $price_buy_box->count() > 0
             and !str_contains($price_buy_box->text(), "opzioni di acquisto")
         ) {
             $price_text = $price_buy_box->text();
+        } elseif (
+            $single_price->count() > 0
+            and !str_contains($single_price->text(), "opzioni di acquisto")
+        ) {
+            $price_text = $single_price->text();
         } elseif ($offer_price->count() > 0) {
             $price_text = $offer_price->text();
         } elseif ($sale_price->count() > 0) {
@@ -213,15 +211,14 @@ class ProductService
         return $price;
     }
 
-
     /**
-     * Search Product Image in the DOM
+     *  Search Product Image in the DOM
      * 
      * @param Crawler $html
      * 
-     * @return array $images
+     * @return array
      */
-    public function findImages(Crawler $html)
+    public function findImages(Crawler $html): array
     {
         $images = [];
         $imagesContainer = $html->filter("#altImages > ul > li");

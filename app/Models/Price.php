@@ -14,10 +14,13 @@ class Price extends Model
         'price'
     ];
 
-    protected $casts = ['product_asin' => 'string'];
+    protected $casts = [
+        'product_asin' => 'string',
+        'product.asin' => 'string'
+    ];
 
     public function article()
     {
-        $this->belongsTo(Article::class);
+        $this->belongsTo(Article::class, 'product_asin', 'asin');
     }
 }
